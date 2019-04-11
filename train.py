@@ -42,7 +42,11 @@ def train(
     model = Darknet(cfg, img_size).to(device)
 
     # Optimizer
-    lr0 = 0.001  # initial learning rate
+    if not transfer:
+        lr0 = 0.001  # initial learning rate
+    else:
+        lr0 = 0.0001  # initial learning rate for transfer learning
+
     optimizer = torch.optim.SGD(model.parameters(), lr=lr0, momentum=0.9, weight_decay=0.0005)
 
     cutoff = -1  # backbone reaches to cutoff layer
@@ -202,7 +206,7 @@ def train(
                 torch.save(chkpt, best)
 
             # Save backup every 10 epochs (optional)
-            if epoch > 0 and epoch % 10 == 0:
+            if epoch > 0 and epoch % 1 == 0:
                 torch.save(chkpt, weights + 'backup%g.pt' % epoch)
 
             # Delete checkpoint
