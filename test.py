@@ -61,6 +61,10 @@ def test(
         targets = targets.to(device)
         imgs = imgs.to(device)
 
+        nt = len(targets)
+        if nt == 0:  # if no targets continue
+            continue
+
         # Plot images with bounding boxes
         if batch_i == 0 and not os.path.exists('test_batch0.jpg'):
             plot_images(imgs=imgs, targets=targets, fname='test_batch0.jpg')
