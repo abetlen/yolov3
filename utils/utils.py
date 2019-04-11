@@ -256,10 +256,11 @@ def compute_loss(p, targets):  # predictions, targets
     for i, pi0 in enumerate(p):  # layer i predictions, i
         b, a, gj, gi = indices[i]  # image, anchor, gridx, gridy
         tconf = torch.zeros_like(pi0[..., 0])  # conf
+        nt = len(b)  # number of targets
 
         # Compute losses
-        k = 1  # nT / bs
-        if len(b) > 0:
+        k = 1  # nt / bs
+        if nt:
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
 
@@ -284,12 +285,12 @@ def compute_loss(p, targets):  # predictions, targets
 
 def build_targets(model, targets):
     # targets = [image, class, x, y, w, h]
-    if isinstance(model, nn.parallel.DistributedDataParallel):
+    if type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel):
         model = model.module
 
     txy, twh, tcls, indices = [], [], [], []
-    for i, layer in enumerate(get_yolo_layers(model)):
-        layer = model.module_list[layer][0]
+    for i in model.yolo_layers:
+        layer = model.module_list[i][0]
 
         # iou of targets-anchors
         gwh = targets[:, 4:6] * layer.nG
@@ -519,10 +520,11 @@ def plot_results(start=0, stop=0):  # from utils.utils import *; plot_results()
          'Test Loss']
     for f in sorted(glob.glob('results*.txt')):
         results = np.loadtxt(f, usecols=[2, 3, 4, 5, 6, 9, 10, 11, 12, 13]).T
-        x = range(start, stop if stop else results.shape[1])
+        n = results.shape[1]  # number of rows
+        x = range(start, min(stop, n) if stop else n)
         for i in range(10):
             plt.subplot(2, 5, i + 1)
-            plt.plot(x, results[i, x].clip(max=500), marker='.', label=f)
+            plt.plot(x, results[i, x].clip(max=500), marker='.', label=f.replace('.txt', ''))
             plt.title(s[i])
             if i == 0:
                 plt.legend()
